@@ -6,6 +6,8 @@ export default createGlobalStyle`
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid hsla(0, 0%, 100%, 0.2);
+  transition: all 0.5s ease-in;
+
 }
 
 .glass:hover {

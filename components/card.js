@@ -24,6 +24,7 @@ const Card = ({ href, shopName, imgUrl }) => {
   );
 };
 const Container = styled.div`
+  cursor: pointer;
   width: 250px;
   margin-top: 2rem;
   padding: 1rem;
