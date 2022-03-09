@@ -4,8 +4,11 @@ import Link from "next/Link";
 import Head from "next/Head";
 import Image from "next/image";
 import styled from "styled-components";
-import coffee from "../../data/coffee-stores.json";
+import GlobalCSS from "../../styles/global.css.js";
 
+// import coffee from "../../data/coffee-stores.json";
+//要換成api的資料
+import { getData } from "../../lib/coffee-stores";
 //用這參數拿到要渲染的資料
 export async function getStaticProps(staticProps) {
   //解決方法就是使用getStaticProps提供的參數staticProps的params!
@@ -20,12 +23,19 @@ export async function getStaticProps(staticProps) {
   //很神奇地可以拿到router的id
   //也可以像{params}這樣解構出來!--> ({params})
 
+  //這個staticProps可以讓伺服器先拿道路由參數
   const params = staticProps.params;
   console.log("staticProps", staticProps);
   console.log(params);
+  //03.09
+  //在index.js替換成用api拿資料後點進單個商店會報錯
+  //因為單個商店是拿假資料的id和api資料的id在互相比對
+  //當然不可能會有匹配的
+  //所以這邊也要call api拿資料
+  const coffee = await getData();
   return {
     props: {
-      coffeeData: coffee.find((i) => i.id.toString() === params.id),
+      coffeeData: coffee.find((i) => i.fsq_id.toString() === params.id),
       //i.id會等於一個dymamic id，就是我們要渲染的那一個商店的id!
 
       //這邊也可以這樣去給予特定單一的值喔!
@@ -38,9 +48,20 @@ export async function getStaticProps(staticProps) {
 //然後之前也有提到，如果你要愈渲染動態葉面
 //getStaticProps和path一定要同時使用
 //不然會報錯
-export function getStaticPaths() {
+export const getStaticPaths = async () => {
+  const data = await getData();
+  const paths = data.map((i) => {
+    return {
+      params: {
+        id: i.fsq_id.toString(),
+      },
+    };
+  });
   return {
-    paths: [{ params: { id: "0" } }, { params: { id: "1" } }],
+    // [{ params: { id: "0" } }, { params: { id: "1" } }],
+    paths, //map本身就回傳陣列，然後每一個元素從這裡的情況來看
+    //剛好就是一個{params: {id:xx}}物件
+    //所以直接賦值即可
     fallback: true,
 
     //CH7 L82-fallback true
@@ -55,7 +76,7 @@ export function getStaticPaths() {
     //至於他報錯的順序依序是:
     //
   };
-}
+};
 
 const CoffeeStore = (props) => {
   //可以看到上面的staticProps給出的是和路由id相同的那個商店資料
@@ -86,6 +107,10 @@ const CoffeeStore = (props) => {
       <Head>
         <title>{name}</title>
       </Head>
+      {/* 有要共用的style應該是只能直接加在要用的元件or app.js */}
+      {/* 原本這個是寫在index.js結果都讀不到，一直都是讀到global.css..*/}
+      <GlobalCSS />
+
       <Container>
         <LeftCol>
           <LinkBox>
@@ -96,7 +121,10 @@ const CoffeeStore = (props) => {
           </NameWrapper>
           <ImgWrapper>
             <Image
-              src={imgUrl}
+              src={
+                imgUrl ||
+                "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+              }
               width={600}
               height={360}
               alt={name}

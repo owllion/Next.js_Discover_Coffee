@@ -5,7 +5,7 @@ import Banner from "../components/banner";
 import Card from "../components/card";
 import Image from "next/image";
 import GlobalCSS from "../styles/global.css.js";
-import axios from "axios";
+import { getData } from "../lib/coffee-stores";
 // import coffee from "../data/coffee-stores.json";
 const handleClick = () => {
   console.log("點擊按鈕");
@@ -20,25 +20,17 @@ const handleClick = () => {
 export async function getStaticProps(context) {
   console.log("hi from termonal");
   //假資料out，要從api拿資料了
-  const config = {
-    headers: {
-      Authorization: process.env.FOURSQUARE_API_KEY,
-    },
-  };
-  const api =
-    "https://api.foursquare.com/v3/places/nearby?ll=24.860690048930362,121.20476897785463";
-  const { data } = await axios.get(api, config);
-  console.log(data.results);
-
+  //把原本寫在這的call api的code移出去，變成單獨的js檔案，看起來較整齊乾淨
+  const coffeeData = await getData();
   return {
     props: {
-      coffeeData: data.results,
+      coffeeData,
     }, // will be passed to the page component as props
   };
 }
 export default function Home({ coffeeData }) {
-  console.log(typeof coffeeData);
-  const rr = coffeeData.map((i) => i.location);
+  console.log(coffeeData);
+  const rr = coffeeData.map((i) => i.name);
   console.log(rr);
   return (
     <Container>
@@ -53,24 +45,27 @@ export default function Home({ coffeeData }) {
         <ImgWrapper>
           <Image src="/static/hero-image.png" width={700} height={400} />
         </ImgWrapper>
-        {coffeeData.map((c) => {
+        {/* {coffeeData.map((c) => {
           return <h1>{c.location.address}</h1>;
-        })}
+        })} */}
         {coffeeData.length > 0 && (
           <>
             <SubTitle>Toronto Coffee Stores</SubTitle>
-            {/* <CardWrapper>
+            <CardWrapper>
               {coffeeData.map((c) => {
                 return (
                   <Card
                     key={`${c.id}${Math.random()}`}
-                    shopName={c.location.name}
-                    href={`/coffee-store/${c.id}`}
-                    imgUrl={c.imgUrl}
+                    shopName={c.name}
+                    href={`/coffee-store/${c.fsq_id}`}
+                    imgUrl={
+                      c.imgUrl ||
+                      "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+                    }
                   />
                 );
               })}
-            </CardWrapper> */}
+            </CardWrapper>
           </>
         )}
 
