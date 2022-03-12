@@ -33,9 +33,10 @@ export async function getStaticProps(staticProps) {
   //當然不可能會有匹配的
   //所以這邊也要call api拿資料
   const coffee = await getData();
+  const id = coffee.find((i) => i.id.toString() === params.id);
   return {
     props: {
-      coffeeData: coffee.find((i) => i.fsq_id.toString() === params.id),
+      coffeeData: id,
       //i.id會等於一個dymamic id，就是我們要渲染的那一個商店的id!
 
       //這邊也可以這樣去給予特定單一的值喔!
@@ -53,7 +54,7 @@ export const getStaticPaths = async () => {
   const paths = data.map((i) => {
     return {
       params: {
-        id: i.fsq_id.toString(),
+        id: i.id,
       },
     };
   });
@@ -71,6 +72,8 @@ export const getStaticPaths = async () => {
     //只是沒有寫到這個getStaticPaths的path的params中(例如現在id=300，但params中沒有300)，
     //那麼next會自己馬上去幫你產生那一葉的html葉面 再正常show給你看
     //這時候你會需要等等，所以下方寫了一個loading
+    //3.12
+    //(利用一個只有在fallback:true時會變成true的isFallback屬性去判斷是否會有fallback page(當你設定成fallback:true，next其實也算是給了你一個錯誤葉面(你看不到)，同時也在產生你要的那個params的葉面，但總之用isFallback屬性去判斷是否顯示loading就是給next一點產生你要的頁面的緩衝時間啦))
 
     //2.連json檔案中都沒有 那就是直接抱錯!
     //至於他報錯的順序依序是:
@@ -100,7 +103,7 @@ const CoffeeStore = (props) => {
   //那個時刻 就是處在fallback ver的page
   //而那個當下 page的props就是空的喔!
   //所以必須寫在那個loading後面喔!
-  const { address, name, neighbourhood, imgUrl } = props.coffeeData;
+  const { name, imgUrl, neighborhood, address } = props.coffeeData;
   const handleUpvote = () => console.log("投票囉!");
   return (
     <Layout>
@@ -138,10 +141,13 @@ const CoffeeStore = (props) => {
             <Image width="24" height="24" src="/static/icons/places.svg" />
             <p>{address}</p>
           </IconWrapper>
-          <IconWrapper>
-            <Image width="24" height="24" src="/static/icons/nearMe.svg" />
-            <p>{neighbourhood}</p>
-          </IconWrapper>
+          {/* 雖然在函數那邊就已經做回傳的一些判斷，但這邊要是沒有值，icon也不能顯示，所以還是要寫&& */}
+          {neighborhood && (
+            <IconWrapper>
+              <Image width="24" height="24" src="/static/icons/nearMe.svg" />
+              <p>{neighborhood}</p>
+            </IconWrapper>
+          )}
           <IconWrapper>
             <Image width="24" height="24" src="/static/icons/star.svg" />
             <p>2</p>
