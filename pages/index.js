@@ -6,10 +6,8 @@ import Card from "../components/card";
 import Image from "next/image";
 import GlobalCSS from "../styles/global.css.js";
 import { getData } from "../lib/coffee-stores";
+import useTrackLocation from "../hooks/use-track-location";
 // import coffee from "../data/coffee-stores.json";
-const handleClick = () => {
-  console.log("點擊按鈕");
-};
 
 //這個是static generation(SSG)的函數
 //預設就是static generation 的without external data ，也就是不用call api的靜態資源，他預設就會幫你預渲染
@@ -30,8 +28,13 @@ export async function getStaticProps(context) {
 }
 export default function Home({ coffeeData }) {
   console.log(coffeeData);
-  // const rr = coffeeData.map((i) => i.name);
-  // console.log(rr);
+  const { getLocation, latLong, locationErrorMsg } = useTrackLocation();
+  //印出物件
+  //就不用每次都要寫成console.log("latLong",latLong)這種麻煩的寫法了
+  console.log({ latLong, locationErrorMsg });
+  const handleClick = () => {
+    getLocation();
+  };
   return (
     <Container>
       <GlobalCSS />
