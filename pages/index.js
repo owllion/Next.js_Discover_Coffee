@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { useEffect, useState } from "react";
 import Link from "next/Link";
 import styled from "styled-components";
 import Banner from "../components/banner";
@@ -28,13 +29,40 @@ export async function getStaticProps(context) {
 }
 export default function Home({ coffeeData }) {
   console.log(coffeeData);
-  const { getLocation, latLong, locationErrorMsg } = useTrackLocation();
+  //3.13 isFindingLocation就是控制loading的值啦啦
+  const { getLocation, latLong, locationErrorMsg, isFindingLocation } =
+    useTrackLocation();
   //印出物件
   //就不用每次都要寫成console.log("latLong",latLong)這種麻煩的寫法了
   console.log({ latLong, locationErrorMsg });
   const handleClick = () => {
+    //getLocation是用來拿到經緯度
+    //getData則是取得經緯度、要拿的商店筆數去抓商店資料&照片
     getLocation();
   };
+  const [storesData, setStores] = useState("");
+  const [storesErr, setStoresErr] = useState(null);
+  useEffect(async () => {
+    //03.18
+    //這邊用了useEffect是代表我們的資料是使用CSR(client side render)
+    //因為SSG只能"預先載入"，意思就是他頂多就是只能"預先call api拿到靜態的資料"
+    //但當使用者點及按鈕要動態得知自己位置附近有哪些商店時
+    //他就沒用了，我們還是需要CSR，需要動態去抓資料~
+    if (latLong) {
+      try {
+        //按下button
+        //假如使用者同意獲取他們的位置資訊我們才會拿到latlong值
+        //假設有拿到，就要重新取得一次資料-->使用getData
+        const res = await getData(latLong, 30);
+        console.log(res);
+        setStores(res);
+      } catch (error) {
+        //error是一個物件 有message和name屬性
+        //但不是error.response嗎... = =
+        setStoresErr(error.message);
+      }
+    }
+  }, [latLong]);
   return (
     <Container>
       <GlobalCSS />
@@ -44,16 +72,38 @@ export default function Home({ coffeeData }) {
       </Head>
 
       <Main>
-        <Banner buttonText="View stores nearby" handleClick={handleClick} />
+        <Banner
+          buttonText={isFindingLocation ? "Loading..." : "View stores nearby"}
+          handleClick={handleClick}
+        />
+        {locationErrorMsg && <p>Something went wrong: {locationErrorMsg}</p>}
+        {storesErr && <p>Something went wrong: {storesErr}</p>}
         <ImgWrapper>
           <Image src="/static/hero-image.png" width={700} height={400} />
         </ImgWrapper>
-        {/* {coffeeData.map((c) => {
-          return <h1>{c.location.address}</h1>;
-        })} */}
+        {storesData.length > 0 && (
+          <>
+            <SubTitle>Stores near me</SubTitle>
+            <CardWrapper>
+              {storesData.map((c) => {
+                return (
+                  <Card
+                    key={`${c.id}${Math.random()}`}
+                    shopName={c.name}
+                    href={`/coffee-store/${c.id}`}
+                    imgUrl={
+                      c.imgUrl ||
+                      "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+                    }
+                  />
+                );
+              })}
+            </CardWrapper>
+          </>
+        )}
         {coffeeData.length > 0 && (
           <>
-            <SubTitle>Toronto Coffee Stores</SubTitle>
+            <SubTitle>Tronto Stores</SubTitle>
             <CardWrapper>
               {coffeeData.map((c) => {
                 return (
@@ -104,7 +154,7 @@ const SubTitle = styled.h2`
   color: #607d8b;
   font-size: 2.1rem;
   line-height: 28px;
-  padding-top: 2rem;
+  padding-top: 5rem;
 `;
 const CardWrapper = styled.div`
   display: grid;

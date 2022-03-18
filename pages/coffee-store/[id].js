@@ -117,7 +117,7 @@ const CoffeeStore = (props) => {
       <Container>
         <LeftCol>
           <LinkBox>
-            <Link href="/">Back to home</Link>
+            <Link href="/">← Back to home</Link>
           </LinkBox>
           <NameWrapper>
             <h1>{name}</h1>
