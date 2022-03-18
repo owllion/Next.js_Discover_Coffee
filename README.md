@@ -1,1 +1,1 @@
-  ##Find the stores near you.
+Find the stores near you.
