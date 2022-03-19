@@ -1,4 +1,7 @@
 import { useRouter } from "next/router";
+import { useEffect, useState, useContext } from "react";
+import { isEmpty } from "../../utils/index.js";
+import { StoreContext } from "../../store/store-index";
 import React from "react";
 import Link from "next/Link";
 import Head from "next/Head";
@@ -114,18 +117,57 @@ export const getStaticPaths = async () => {
   };
 };
 
-const CoffeeStore = (props) => {
+//原本的props改成initialProps 這樣比較不會搞混
+const CoffeeStore = (initialProps) => {
+  const {
+    state: { storeList },
+  } = useContext(StoreContext);
   //可以看到上面的staticProps給出的是和路由id相同的那個商店資料
   //所以假設我們是點id:0的商店
   //那我們就只會拿到他一間商店的資料
   // console.log("props", props);
+
+  //重整單一商店葉面 router完全取不到query那些 直接空物件
+  //因此導致後續一連串錯誤 = =
   const router = useRouter();
-  // console.log(router);
-  const query = router.query.id; //這個是自己會去url裡面讀取的(看檔名就知道了)
+  console.log(router);
+  const id = router.query.id;
+  console.log(id);
+  //這個是自己會去url裡面讀取的(看檔名就知道了)
   // const imgUrl = router.query.imgUrl; //這個是我們在link標籤上自己設定的
   // console.log(imgUrl);
   //不知為何從router取不到直??
-  //但總之可以從getStaticProps中取道!
+  //但總之可以從getStaticProps中取得
+
+  //3.19 這邊是為了在id不存在時
+  //我們必須去context裡面存的使用者附近店家的商店列表中
+  //尋找對應的id來回傳
+  //他的初始值一般情況下就是預先call api獲得的資料
+  //但現在要先假設他是空的 那麼就會報錯
+  const [storeData, setStoreData] = useState(initialProps.coffeeData || {});
+  useEffect(() => {
+    //如果再單一商店葉面重整 就會抱錯XD
+    //因為initialProps.coffeeData不是物件 直接變成undefined了 = =
+    //undefined放到isEmpty裡面她會說沒法把那種資料型態轉成物件
+    //bug...
+    console.log({ data: initialProps.coffeeData });
+    //如果id不存在 拿到的initialsprops就會是空的(因為getStaticProps就是回空的)
+    if (isEmpty(initialProps.coffeeData)) {
+      //我們就必須去context裡面取得的state.storeList裡面找對應id
+      //確認state裡面的storeList是有值的
+      if (storeList.length > 0) {
+        //最後面的id是從路由拿的那個id喔!
+        const storeFromContext = storeList.find((i) => i.id.toString() === id);
+
+        //確認context中有找到對應商店資料(find有回傳)
+        if (storeFromContext) {
+          //有 就把它存入這個頁面的useState中
+          setStoreData(storeFromContext);
+        }
+      }
+    }
+    //路由id有變化時(即一進入此葉面時)就去檢查有沒有拿到資料
+  }, [id]);
 
   if (router.isFallback) {
     return <div>Loading...</div>;
@@ -135,9 +177,15 @@ const CoffeeStore = (props) => {
   //會發現居然報錯~ 原因寫在上面了 就是因為在router.isFallback = true時
   //那個時刻 就是處在fallback ver的page
   //而那個當下 page的props就是空的喔!
-  //所以必須寫在那個loading後面喔!
-  const { name, imgUrl, neighborhood, address } = props.coffeeData;
+  //所以有要取props的話，就必須寫在那個loading後面喔!
+
+  //原本這一頁的資料都是從getStaticProps傳入的props裡面取這些值
+  //但是現在已經把props的值放到useState裡面了
+  //所以不管getStaticProps友直還是空物件 都統一從useState取喔!
+  const { name, imgUrl, neighborhood, address } = storeData;
+
   const handleUpvote = () => console.log("投票囉!");
+
   return (
     <Layout>
       <Head>

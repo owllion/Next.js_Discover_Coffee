@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ACTION_TYPES, StoreContext } from "../pages/_app.js";
+import { useState, useContext } from "react";
+import { ACTION_TYPES, StoreContext } from "../store/store-index";
 //useXXX都必須在Hook本體中使用
 const useTrackLocation = () => {
   console.log("useTrackLocation開始執行!");
@@ -7,6 +7,11 @@ const useTrackLocation = () => {
 
   //不需要了，已把 latLong 放置於_app.js的context中
   // const [latLong, setLatLong] = useState("");
+
+  //我們在_app.js已經把useReducer回傳的dispatch傳入context中
+  //所以現在可以從context中獲得dispatch
+  const { dispatch } = useContext(StoreContext);
+
   //loading判斷
   const [isFindingLocation, setIsFindingLocation] = useState(false);
 
@@ -19,7 +24,11 @@ const useTrackLocation = () => {
     //3.19 不需要了 因為經緯度必須要共用
     //所以已改成存在context的useReducer裡面了
     // setLatLong(`${latitude},${longitude}`);
-
+    //改用dispatch
+    dispatch({
+      type: ACTION_TYPES.SET_LATLONG,
+      payload: { latLong: `${latitude},${longitude}` },
+    });
     //同時為避免再取得正確資訊前，errorMsg會顯示出來
     //所以在這要清空一次以防萬一
     setLocationErrorMsg("");
