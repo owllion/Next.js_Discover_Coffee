@@ -10,10 +10,11 @@ import { getData } from "../lib/coffee-stores";
 import useTrackLocation from "../hooks/use-track-location";
 // import coffee from "../data/coffee-stores.json";
 
-//這個是static generation(SSG)的函數
-//預設就是static generation 的without external data ，也就是不用call api的靜態資源，他預設就會幫你預渲染
+//static generation(SSG)的without external data 是next.js預設的渲染方式
+//也就是不用call api的靜態資源(json檔案之類的)，他預設就會幫你預渲染
 //那這個getStaticProps，則是ssg的另一種渲染方式，是當你有需要用到外部資源時才需要寫(例如call api)
-//這一段code是在server被呼叫的喔!所以裡面寫console會從terminal顯示
+//這一段code是在server被呼叫的!
+//所以裡面寫console會從terminal顯示
 //然後如果真的要call api才需要加上async喔
 //沒有的話是不用加的!
 export async function getStaticProps(context) {
@@ -30,6 +31,11 @@ export async function getStaticProps(context) {
 export default function Home({ coffeeData }) {
   console.log(coffeeData);
   //3.13 isFindingLocation就是控制loading的值啦啦
+  //3.19 useTrackLocation的執行順序是
+  //假如它裡面的任一函數被呼叫執行了(例如這邊的getLocation)
+  //那他也會一起執行一次
+  //代表使用者按下按鈕後會呼叫getLocation->useTracking重新執行-->這邊的latlong的值更新->useEffect偵測到變動->重新抓資料(getData帶入拿到的經緯度)
+  //但是因為useEffect取道的值是存在useState 所以只要重新整理就會全部消失
   const { getLocation, latLong, locationErrorMsg, isFindingLocation } =
     useTrackLocation();
   //印出物件

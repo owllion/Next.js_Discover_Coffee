@@ -1,8 +1,12 @@
 import { useState } from "react";
+import { ACTION_TYPES, StoreContext } from "../pages/_app.js";
 //useXXX都必須在Hook本體中使用
 const useTrackLocation = () => {
+  console.log("useTrackLocation開始執行!");
   const [locationErrorMsg, setLocationErrorMsg] = useState("");
-  const [latLong, setLatLong] = useState("");
+
+  //不需要了，已把 latLong 放置於_app.js的context中
+  // const [latLong, setLatLong] = useState("");
   //loading判斷
   const [isFindingLocation, setIsFindingLocation] = useState(false);
 
@@ -12,7 +16,9 @@ const useTrackLocation = () => {
     const longitude = positions.coords.longitude;
 
     //拿到經緯度就賦值
-    setLatLong(`${latitude},${longitude}`);
+    //3.19 不需要了 因為經緯度必須要共用
+    //所以已改成存在context的useReducer裡面了
+    // setLatLong(`${latitude},${longitude}`);
 
     //同時為避免再取得正確資訊前，errorMsg會顯示出來
     //所以在這要清空一次以防萬一
@@ -31,6 +37,7 @@ const useTrackLocation = () => {
     setLocationErrorMsg(`ERROR:${err.message}`);
   };
   const getLocation = () => {
+    console.log("getLocation開始執行!");
     //按下去就先變成true
     setIsFindingLocation(true);
     if (!navigator.geolocation) {
@@ -42,7 +49,7 @@ const useTrackLocation = () => {
     }
   };
   return {
-    latLong,
+    // latLong, 已改成放在context中共用
     isFindingLocation,
     getLocation,
     locationErrorMsg,

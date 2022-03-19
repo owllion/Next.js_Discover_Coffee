@@ -9,8 +9,10 @@ import GlobalCSS from "../../styles/global.css.js";
 // import coffee from "../../data/coffee-stores.json";
 //要換成api的資料
 import { getData } from "../../lib/coffee-stores";
-//用這參數拿到要渲染的資料
+
+//用這函數拿到要渲染的資料
 export async function getStaticProps(staticProps) {
+  console.log("這是staticProps");
   //解決方法就是使用getStaticProps提供的參數staticProps的params!
   //他就像是react hooks的props!
   //長這樣
@@ -25,18 +27,25 @@ export async function getStaticProps(staticProps) {
 
   //這個staticProps可以讓伺服器先拿道路由參數
   const params = staticProps.params;
-  console.log("staticProps", staticProps);
-  console.log(params);
+  // console.log("staticProps", staticProps);
+  console.log({ params });
   //03.09
   //在index.js替換成用api拿資料後點進單個商店會報錯
   //因為單個商店是拿假資料的id和api資料的id在互相比對
   //當然不可能會有匹配的
-  //所以這邊也要call api拿資料
+  //所以這邊也要call api拿資料(預設是多倫多資料)
+  //03.19 因為動態取得使用者位置渲染出來的商店id並不存在於coffee stores資料裡
+  //會報fail to load static props的錯
+  //所以這邊要多加一個{} 避免出現上面這個錯誤
   const coffee = await getData();
-  const id = coffee.find((i) => i.id.toString() === params.id);
+  const findStoreById = coffee.find((i) => i.id.toString() === params.id);
+  // const id = coffee.find((i) => i.id.toString() === params.id);
   return {
     props: {
-      coffeeData: id,
+      //03.19 改這邊 加入一個{}
+      //作用就是至少讓她不會抱錯
+      //而如果真的是{}的話 顯示出來的就會是我們預設的圖片和星星數而已喔!
+      coffeeData: findStoreById ? findStoreById : {},
       //i.id會等於一個dymamic id，就是我們要渲染的那一個商店的id!
 
       //這邊也可以這樣去給予特定單一的值喔!
@@ -50,6 +59,13 @@ export async function getStaticProps(staticProps) {
 //getStaticProps和path一定要同時使用
 //不然會報錯
 export const getStaticPaths = async () => {
+  //如果有寫這個 那就是path先執行 ->才換getStaticProps
+  //官網說明
+  //If a page has Dynamic Routes and uses getStaticProps, it needs to define a list of paths to be statically generated.
+
+  // When you export a function called getStaticPaths (Static Site Generation) from a page that uses dynamic routes, Next.js will statically pre-render all the paths specified by getStaticPaths.
+
+  console.log("這是StaticPaths 他會比getStaticProps先執行");
   const data = await getData();
   const paths = data.map((i) => {
     return {
@@ -76,8 +92,25 @@ export const getStaticPaths = async () => {
     //(利用一個只有在fallback:true時會變成true的isFallback屬性去判斷是否會有fallback page(當你設定成fallback:true，next其實也算是給了你一個錯誤葉面(你看不到)，同時也在產生你要的那個params的葉面，但總之用isFallback屬性去判斷是否顯示loading就是給next一點產生你要的頁面的緩衝時間啦))
 
     //2.連json檔案中都沒有 那就是直接抱錯!
-    //至於他報錯的順序依序是:
-    //
+    //3.18更新 L113
+    //是在這邊報錯 所以也可以推導這個fn是先執行的
+    //大致上流程就是
+    //一進入此頁面 他就會先執行getStaticPath
+    //先去 getData (當然是去取預設的tronto的stores資料囉)
+    //然後把那些stores的id全都回傳給params
+    //也就是在跟getStaticPath講: you should keep a note of the list of id.
+    //因為我等等就要用getStaticProps去pre-render了
+    //現在遇到的問題則是
+    //我們已經把getData改成可傳入動態params的樣子了 所以當使用者按下explore按鈕
+    //就會去產生它附近的店家 當使用者再去按下任意他附近店家 想要查看詳細資料時
+    //就會發現報錯了!
+    //這是因為上面寫到了 現在這頁固定都是先去抓(用getStaticProps)我們預設的多倫多資料(沒傳params 參數預設值為多倫多的經緯度!)
+    //那當我們點進來 商店例如是活魚餐廳
+    //這id不存在id list中(因為該list中的id是從coffee stores中獲取的)
+    //paths就會先進入fallback 去檢查是否真的不存在
+    //如果真的沒有該id 那就是繼續執行getStaticProps啦(從中端推測的執行順序)
+    //但props也是call 咖啡店的資料 它裡面怎可能會有活魚餐廳的id 所以最後就
+    //報了 fail to load static props的錯誤了
   };
 };
 
@@ -85,9 +118,9 @@ const CoffeeStore = (props) => {
   //可以看到上面的staticProps給出的是和路由id相同的那個商店資料
   //所以假設我們是點id:0的商店
   //那我們就只會拿到他一間商店的資料
-  console.log("props", props);
+  // console.log("props", props);
   const router = useRouter();
-  console.log(router);
+  // console.log(router);
   const query = router.query.id; //這個是自己會去url裡面讀取的(看檔名就知道了)
   // const imgUrl = router.query.imgUrl; //這個是我們在link標籤上自己設定的
   // console.log(imgUrl);
