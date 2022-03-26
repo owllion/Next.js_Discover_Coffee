@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useEffect, useState, useContext } from "react";
-
+import axios from "axios";
 import { ACTION_TYPES, StoreContext } from "../store/store-index";
 import Link from "next/Link";
 import styled from "styled-components";
@@ -67,15 +67,21 @@ export default function Home({ coffeeData }) {
         //按下button
         //假如使用者同意獲取他們的位置資訊我們才會拿到latlong值
         //假設有拿到，就要重新取得一次資料-->使用getData
-        const res = await getData(latLong, 30);
-        console.log(res);
+        // const res = await getData(latLong, 30);
+        // console.log(res);
 
+        //03.22 設定好serverless fn了
+        //可以直接用他來call資料
+        const { data } = await axios.get(
+          `/api/getStoresByLocation?latLong=${latLong}&limit=30`
+        );
+        console.log(data);
         // setStores(res);
         //不能用只能在此元件中取用的useState了
         //改成用context
         dispatch({
           type: ACTION_TYPES.SET_STORES,
-          payload: { storeList: res },
+          payload: { storeList: data },
         });
       } catch (error) {
         //error是一個物件 有message和name屬性
