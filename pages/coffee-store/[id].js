@@ -8,7 +8,7 @@ import Head from "next/Head";
 import Image from "next/image";
 import styled from "styled-components";
 import GlobalCSS from "../../styles/global.css.js";
-
+import axios from "axios";
 // import coffee from "../../data/coffee-stores.json";
 //要換成api的資料
 import { getData } from "../../lib/coffee-stores";
@@ -122,14 +122,29 @@ const CoffeeStore = (initialProps) => {
   const {
     state: { storeList },
   } = useContext(StoreContext);
-  //可以看到上面的staticProps給出的是和路由id相同的那個商店資料
-  //所以假設我們是點id:0的商店
-  //那我們就只會拿到他一間商店的資料
-  // console.log("props", props);
 
-  //重整單一商店葉面 router完全取不到query那些 直接空物件
-  //因此導致後續一連串錯誤 = =
+  //03.27新增自己寫的api
+  //這隻會在找不到商店資料時呼叫
+  //他會回傳or創建商店資料喔!
+  const handleCreateStores = async (data) => {
+    const { id, name, neighbourhood, address, imgUrl, voting } = data;
+    const params = {
+      id,
+      name,
+      neighbourhood: neighbourhood || "",
+      address: address || "",
+      imgUrl,
+      voting,
+    };
+    try {
+      const res = await axios.post("/api/createStore", params);
+      console.log({ res });
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const router = useRouter();
+  //重整單一商店葉面 router完全取不到query那些 直接空物件
   console.log(router);
   const id = router.query.id;
   console.log(id);
@@ -149,7 +164,6 @@ const CoffeeStore = (initialProps) => {
     //如果再單一商店葉面重整 就會抱錯XD
     //因為initialProps.coffeeData不是物件 直接變成undefined了 = =
     //undefined放到isEmpty裡面她會說沒法把那種資料型態轉成物件
-    //bug...
     console.log({ data: initialProps.coffeeData });
     //如果id不存在 拿到的initialsprops就會是空的(因為getStaticProps就是回空的)
     if (isEmpty(initialProps.coffeeData)) {
@@ -160,9 +174,13 @@ const CoffeeStore = (initialProps) => {
         const storeFromContext = storeList.find((i) => i.id.toString() === id);
 
         //確認context中有找到對應商店資料(find有回傳)
+        //這邊要特別做確認是因為
+        //find()函數在找不到目標時，他就會回傳undefined 會導致報錯...
         if (storeFromContext) {
           //有 就把它存入這個頁面的useState中
           setStoreData(storeFromContext);
+          //03.27 現在因為要應付重整後context資料會消失的問題，所以當我們從這拿到context中對應的商店資料後，也必須把它存到我們的airtable裡面
+          handleCreateStores(storeFromContext);
         }
       }
     }
