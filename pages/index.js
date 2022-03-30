@@ -2,7 +2,7 @@ import Head from "next/head";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { ACTION_TYPES, StoreContext } from "../store/store-index";
-import Link from "next/Link";
+
 import styled from "styled-components";
 import Banner from "../components/banner";
 import Card from "../components/card";
