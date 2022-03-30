@@ -245,10 +245,13 @@ const CoffeeStore = (initialProps) => {
   const handleUpvote = async () => {
     try {
       //參數的id已經從路由拿到了
-      const res = await axios.put("/api/upvoteStoreById", { id });
+      const { data } = await axios.put("/api/upvoteStoreById", { id });
       //可能api失敗了或是怎樣的例外情況 所以要判斷遺下存不存在
-      if (res && res.length > 0) {
-        setVotingCount(votingCount + 1);
+      //成功的話會回傳那個被upvote的商店資料
+      console.log({ data });
+      if (data && data.length > 0) {
+        let count = votingCount + 1;
+        setVotingCount(count);
       }
     } catch (error) {
       console.log("Error upvoting the store", error);
