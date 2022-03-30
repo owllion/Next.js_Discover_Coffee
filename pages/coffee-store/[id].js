@@ -135,7 +135,7 @@ const CoffeeStore = (initialProps) => {
       neighbourhood: neighbourhood || "",
       address: address || "",
       imgUrl,
-      voting,
+      voting: 0,
     };
     try {
       const res = await axios.post("/api/createStore", params);
@@ -213,7 +213,7 @@ const CoffeeStore = (initialProps) => {
   //原本這一頁的資料都是從getStaticProps傳入的props裡面取這些值
   //但是現在已經把props的值放到useState裡面了
   //所以不管getStaticProps友直還是空物件 都統一從useState取喔!
-  const { name, imgUrl, neighborhood, address } = storeData;
+  const { name, imgUrl, neighbourhood, address } = storeData;
   const [votingCount, setVotingCount] = useState(0);
 
   //03.30 useSWR
@@ -235,14 +235,24 @@ const CoffeeStore = (initialProps) => {
       setStoreData(data[0]);
       //因為voting是單獨拉到usestate做儲存
       //所以這邊也要額外去重新賦值
+      //如果本來就是空的 那就不會顯示東西喔XD
       setVotingCount(data[0].voting);
     }
   }, [data]);
   if (error) {
     return <div>Something went wrong retrieving data</div>;
   }
-  const handleUpvote = () => {
-    setVotingCount(votingCount + 1);
+  const handleUpvote = async () => {
+    try {
+      //參數的id已經從路由拿到了
+      const res = await axios.put("/api/upvoteStoreById", { id });
+      //可能api失敗了或是怎樣的例外情況 所以要判斷遺下存不存在
+      if (res && res.length > 0) {
+        setVotingCount(votingCount + 1);
+      }
+    } catch (error) {
+      console.log("Error upvoting the store", error);
+    }
   };
   return (
     <Layout>
@@ -281,10 +291,10 @@ const CoffeeStore = (initialProps) => {
             <p>{address}</p>
           </IconWrapper>
           {/* 雖然在函數那邊就已經做回傳的一些判斷，但這邊要是沒有值，icon也不能顯示，所以還是要寫&& */}
-          {neighborhood && (
+          {neighbourhood && (
             <IconWrapper>
               <Image width="24" height="24" src="/static/icons/nearMe.svg" />
-              <p>{neighborhood}</p>
+              <p>{neighbourhood}</p>
             </IconWrapper>
           )}
           <IconWrapper>

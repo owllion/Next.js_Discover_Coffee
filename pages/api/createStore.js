@@ -8,6 +8,7 @@ const createStore = async (req, res) => {
     const { id, name, neighbourhood, imgUrl, address, voting } = req.body;
     try {
       if (id) {
+        //如果已經存在 就直接回傳 不用創建
         const records = await findRecordByFilter(id);
         if (records.length !== 0) {
           //用平常用的{data:{...}}這樣解構是不行的喔
