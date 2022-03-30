@@ -12,6 +12,7 @@ import axios from "axios";
 // import coffee from "../../data/coffee-stores.json";
 //要換成api的資料
 import { getData } from "../../lib/coffee-stores";
+import useSWR from "swr";
 
 //用這函數拿到要渲染的資料
 export async function getStaticProps(staticProps) {
@@ -139,6 +140,7 @@ const CoffeeStore = (initialProps) => {
     try {
       const res = await axios.post("/api/createStore", params);
       console.log({ res });
+      const dbStores = res;
     } catch (error) {
       console.log(error);
     }
@@ -154,24 +156,25 @@ const CoffeeStore = (initialProps) => {
   //不知為何從router取不到直??
   //但總之可以從getStaticProps中取得
 
-  //3.19 這邊是為了在id不存在時
+  //3.19 這個useEffect是為了在商店id不存在於預渲染list裡面時
   //我們必須去context裡面存的使用者附近店家的商店列表中
   //尋找對應的id來回傳
-  //他的初始值一般情況下就是預先call api獲得的資料
-  //但現在要先假設他是空的 那麼就會報錯
+  //他的初始值是getStaticProps拿到的資料
+  //又寫了 || {} 是因為getStaticProps的資料是由find()回傳的
+  //要是找不到的話 find就會回傳undefined
+  //但undefined要是放到isEmpty裡面她會說沒法把那種資料型態轉成物件
+  //就會報錯 所以才要加這個{}
   const [storeData, setStoreData] = useState(initialProps.coffeeData || {});
   useEffect(() => {
-    //如果再單一商店葉面重整 就會抱錯XD
-    //因為initialProps.coffeeData不是物件 直接變成undefined了 = =
-    //undefined放到isEmpty裡面她會說沒法把那種資料型態轉成物件
-    console.log({ data: initialProps.coffeeData });
-    //如果id不存在 拿到的initialsprops就會是空的(因為getStaticProps就是回空的)
+    // console.log({ data: initialProps.coffeeData });
+
     if (isEmpty(initialProps.coffeeData)) {
+      //不存在於預渲染資料中的話
       //我們就必須去context裡面取得的state.storeList裡面找對應id
       //確認state裡面的storeList是有值的
       if (storeList.length > 0) {
-        //最後面的id是從路由拿的那個id喔!
         const storeFromContext = storeList.find((i) => i.id.toString() === id);
+        // === id 的 id 是從路由拿的那個id喔!
 
         //確認context中有找到對應商店資料(find有回傳)
         //這邊要特別做確認是因為
@@ -183,9 +186,19 @@ const CoffeeStore = (initialProps) => {
           handleCreateStores(storeFromContext);
         }
       }
+    } else {
+      //03.27 因為增加了airtable的資料來源
+      //現在如果情況是:getStaticProps是有值的
+      //其實他這種static 的資料根本就不用存到資料庫啦
+      //因為重整她也不會消失 完全沒問題
+      //但問題是voting也就不會改變
+      //所以這邊的else情況其實就只是為了可以讓staticProps的資料也可以有voting功能而已
+      //總之，我們會在這，也把getStaticProps的資料給加入資料庫啦!
+      handleCreateStores(initialProps.coffeeData);
     }
     //路由id有變化時(即一進入此葉面時)就去檢查有沒有拿到資料
-  }, [id]);
+    //03.27 新增 initialProps和coffeeData這兩個dependency~一定要寫 因為他們都有在useEffect裡面被用到
+  }, [id, initialProps, initialProps.CoffeeStore]);
 
   if (router.isFallback) {
     return <div>Loading...</div>;
@@ -201,9 +214,36 @@ const CoffeeStore = (initialProps) => {
   //但是現在已經把props的值放到useState裡面了
   //所以不管getStaticProps友直還是空物件 都統一從useState取喔!
   const { name, imgUrl, neighborhood, address } = storeData;
+  const [votingCount, setVotingCount] = useState(0);
 
-  const handleUpvote = () => console.log("投票囉!");
-
+  //03.30 useSWR
+  //這個fetcher是他規定要寫的 可以用任何你想用的call api的工具
+  const fetcher = (url) => axios.get(url).then((res) => res.data);
+  //不用寫try catch 可以直接解構拿到data和錯誤再去做判斷
+  const { data, error } = useSWR(`/api/getStoreById?id=${id}`, fetcher);
+  //這邊api的id是從上面的route.query.id拿到的喔!
+  useEffect(() => {
+    if (data && data.length > 0) {
+      //如果SWR幫我們拿到新資料了 就可以把新商店資料賦給useState
+      //後面的data.length>0是以防萬一 做最萬全的準備XD
+      //至於 為何是data[0]是因為
+      //拿到的data其實就是你call那隻api他會回傳給你的資料
+      //並不是什麼神秘的東西
+      //而那隻api會回我們的是一個陣列包著一個物件
+      //那個物件位在陣列index=0的位置 就這樣~
+      console.log("data from swr", data);
+      setStoreData(data[0]);
+      //因為voting是單獨拉到usestate做儲存
+      //所以這邊也要額外去重新賦值
+      setVotingCount(data[0].voting);
+    }
+  }, [data]);
+  if (error) {
+    return <div>Something went wrong retrieving data</div>;
+  }
+  const handleUpvote = () => {
+    setVotingCount(votingCount + 1);
+  };
   return (
     <Layout>
       <Head>
@@ -249,7 +289,7 @@ const CoffeeStore = (initialProps) => {
           )}
           <IconWrapper>
             <Image width="24" height="24" src="/static/icons/star.svg" />
-            <p>2</p>
+            <p>{votingCount}</p>
           </IconWrapper>
           <UpvoteBtn onClick={handleUpvote}>Up vote!</UpvoteBtn>
         </RightCol>
