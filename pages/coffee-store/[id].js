@@ -123,28 +123,6 @@ const CoffeeStore = (initialProps) => {
   const {
     state: { storeList },
   } = useContext(StoreContext);
-
-  //03.27新增自己寫的api
-  //這隻會在找不到商店資料時呼叫
-  //他會回傳or創建商店資料喔!
-  const handleCreateStores = async (data) => {
-    const { id, name, neighbourhood, address, imgUrl, voting } = data;
-    const params = {
-      id,
-      name,
-      neighbourhood: neighbourhood || "",
-      address: address || "",
-      imgUrl,
-      voting: 0,
-    };
-    try {
-      const res = await axios.post("/api/createStore", params);
-      console.log({ res });
-      const dbStores = res;
-    } catch (error) {
-      console.log(error);
-    }
-  };
   const router = useRouter();
   //重整單一商店葉面 router完全取不到query那些 直接空物件
   console.log(router);
@@ -198,17 +176,7 @@ const CoffeeStore = (initialProps) => {
     }
     //路由id有變化時(即一進入此葉面時)就去檢查有沒有拿到資料
     //03.27 新增 initialProps和coffeeData這兩個dependency~一定要寫 因為他們都有在useEffect裡面被用到
-  }, [id, initialProps, initialProps.CoffeeStore]);
-
-  if (router.isFallback) {
-    return <div>Loading...</div>;
-  }
-  //In the “fallback” version of a page, the page’s props will be empty.
-  //如果把取props的函式寫在if router.isFallback前面的話
-  //會發現居然報錯~ 原因寫在上面了 就是因為在router.isFallback = true時
-  //那個時刻 就是處在fallback ver的page
-  //而那個當下 page的props就是空的喔!
-  //所以有要取props的話，就必須寫在那個loading後面喔!
+  }, [id, initialProps, initialProps.coffeeStore]);
 
   //原本這一頁的資料都是從getStaticProps傳入的props裡面取這些值
   //但是現在已經把props的值放到useState裡面了
@@ -242,6 +210,38 @@ const CoffeeStore = (initialProps) => {
   if (error) {
     return <div>Something went wrong retrieving data</div>;
   }
+  //03.27新增自己寫的api
+  //這隻會在找不到商店資料時呼叫
+  //他會回傳or創建商店資料喔!
+  const handleCreateStores = async (data) => {
+    const { id, name, neighbourhood, address, imgUrl, voting } = data;
+    const params = {
+      id,
+      name,
+      neighbourhood: neighbourhood || "",
+      address: address || "",
+      imgUrl,
+      voting: 0,
+    };
+    try {
+      const res = await axios.post("/api/createStore", params);
+      console.log({ res });
+      const dbStores = res;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  if (router.isFallback) {
+    return <div>Loading...</div>;
+  }
+  //In the “fallback” version of a page, the page’s props will be empty.
+  //如果把取props的函式寫在if router.isFallback前面的話
+  //會發現居然報錯~ 原因寫在上面了 就是因為在router.isFallback = true時
+  //那個時刻 就是處在fallback ver的page
+  //而那個當下 page的props就是空的喔!
+  //所以有要取props的話，就必須寫在那個loading後面喔!
+
   const handleUpvote = async () => {
     try {
       //參數的id已經從路由拿到了
